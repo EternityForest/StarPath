@@ -2,8 +2,42 @@
 import { targetSettings, interpretSettings } from "../app";
 import { ref } from "vue";
 import { fixedStarNames } from "../fixedstars";
+import {cachedSearch} from "../wikipediageocoder"
 
 const fixedstarssearch = ref("");
+
+
+async function doLocationSearch() {
+  try {
+    let r = await cachedSearch(targetSettings.value.location);
+    if(r) {
+      targetSettings.value.lat = r.lat;
+      targetSettings.value.lon = r.lon;
+      targetSettings.value.location = r.name;
+    }
+  }
+  catch(e) {
+    console.log(e);
+    alert(e);
+  }
+}
+
+
+async function doLocationSearch2() {
+  try {
+    let r = await cachedSearch(targetSettings.value.location2);
+    if(r) {
+      targetSettings.value.lat2 = r.lat;
+      targetSettings.value.lon2 = r.lon;
+      targetSettings.value.location2 = r.name;
+    }
+  }
+  catch(e) {
+    console.log(e);
+    alert(e);
+  }
+}
+
 
 // defineProps<{ msg: string }>()
 
@@ -24,9 +58,24 @@ const fixedstarssearch = ref("");
         >Time
         <input type="datetime-local" v-model="targetSettings.time" />
       </label>
+
+      <label>Location
+      <input type="text" v-model="targetSettings.location" />
+      </label>
+
+      <button @click="doLocationSearch()">Search Coords</button>
+      <label>Lattitude
+      <input type="number"  min="-180" max="180" step="0.0000000001" v-model="targetSettings.lat" />
+      </label>
+      <label>Longitude
+      <input type="number" min="-180" max="180" step="0.0000000001" v-model="targetSettings.lon" />
+      </label>
     </div>
 
+    <details>
+      <summary>
     <h3>Synastry/Transit</h3>
+      </summary>
     <div class="stacked-form">
       <p class="help">This will be the outer ring if enabled.</p>
       <label
@@ -41,7 +90,20 @@ const fixedstarssearch = ref("");
         >Time
         <input type="datetime-local" v-model="targetSettings.time2" />
       </label>
+      <label>Location
+      <input type="text" v-model="targetSettings.location2" />
+      </label>
+
+      <button @click="doLocationSearch2()">Search Coords</button>
+      <label>Lattitude
+      <input type="number"  min="-180" max="180" step="0.0000000001" v-model="targetSettings.lat2" />
+      </label>
+      <label>Longitude
+      <input type="number" min="-180" max="180" step="0.0000000001" v-model="targetSettings.lon2" />
+      </label>
+
     </div>
+</details>
 
     <h3>Interpret</h3>
     <div class="stacked-form">
@@ -78,7 +140,7 @@ const fixedstarssearch = ref("");
         <button
           v-for="(v, _i) of fixedStarNames.filter((v) =>
             v.toLowerCase().includes(fixedstarssearch.toLowerCase())
-          )"
+          ).sort()"
           class="nogrow"
           v-on:click="
             interpretSettings.fixed_stars.includes(v) ||

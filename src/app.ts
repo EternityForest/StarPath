@@ -15,11 +15,18 @@ const targetSettings = ref({
     // Date and time as ISO
     "time": formatDate(new Date()),
     "name": "John Smith",
+    location: "",
+    lat: 0,
+    lon: 0,
 
-    //Use the transit/synastry mode
+   //Use the transit/synastry mode
     "transit": false,
     "time2": formatDate(new Date()),
-    "name2": ""
+    "name2": "",
+
+    location2: "",
+    lat2: 0,
+    lon2: 0
 })
 
 const interpretSettings = ref({

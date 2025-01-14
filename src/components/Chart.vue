@@ -49,14 +49,21 @@ function computePositionsKey(
 ): { [key: string]: [string, number, number, number] } {
   let result: { [key: string]: [string, number, number, number] } = {};
 
+  // [cusp, house zero based] starting at the lowest degreee number cusp
+  let house_cusps_offset = []
+  for(let i = 0; i < cusps.length; i++) {
+    house_cusps_offset.push([cusps[i], i])
+  }
+  house_cusps_offset.sort((a, b) => a[0] - b[0]);
+
   for (const [key, value] of Object.entries(planets)) {
     let house: number = 12;
-
+    console.log(key, value);
     let ecliptic = value[0];
     let sign = Math.floor(ecliptic / 30);
-    for (const [housenum, cusp] of Object.entries(cusps)) {
-      if (ecliptic > cusp) {
-        house = parseInt(housenum);
+    for (const cusp of house_cusps_offset) {
+      if (ecliptic > cusp[0]) {
+        house = cusp[1]+1;
       }
     }
 
@@ -108,7 +115,7 @@ function computePositionsKey(
 // }
 
 
-function getDrawableData(datetime: string) {
+function getDrawableData(datetime: string, lat: number, lon: number) {
   const parsed = new Date(datetime);
 
 
@@ -118,8 +125,8 @@ function getDrawableData(datetime: string) {
     date: parsed.getDate(),
     hour: parsed.getHours(),
     minute: parsed.getMinutes(),
-    latitude: 40.0,
-    longitude: -70.0,
+    latitude: lat,
+    longitude: lon
   });
 
   const horoscope = new Horoscope({
@@ -186,11 +193,11 @@ function rerender() {
   const datetime: string = targetSettings.value.time;
   const datetime2: string = targetSettings.value.time2;
 
-  let drawData = getDrawableData(datetime);
+  let drawData = getDrawableData(datetime, targetSettings.value.lat, targetSettings.value.lon);
 
   let drawData2 = null;
   if (datetime2 && targetSettings.value.transit) {
-    drawData2 = getDrawableData(datetime2);
+    drawData2 = getDrawableData(datetime2, targetSettings.value.lat2, targetSettings.value.lon2);
   }
 
   positionsKey.value = computePositionsKey(drawData.planets, drawData.cusps);
