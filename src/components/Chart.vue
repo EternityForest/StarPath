@@ -99,7 +99,6 @@ function computePositionsKey(
     for (const cusp of house_cusps_offset) {
       if (ecliptic >= cusp[0]) {
         house = cusp[1] + 1;
-        break;
       }
     }
 
