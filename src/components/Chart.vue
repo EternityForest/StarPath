@@ -387,7 +387,7 @@ watch(interpretSettings.value, () => {
 });
 
 onMounted(() => {
-  rerender();
+  rerender(true);
 });
 </script>
 
