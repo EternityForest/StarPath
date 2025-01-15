@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch, ref } from "vue";
+import { onMounted, watch, ref, type Ref } from "vue";
 import { Chart } from "@astrodraw/astrochart";
 import { Origin, Horoscope } from "circular-natal-horoscope-js";
 import {
@@ -13,9 +13,25 @@ import { getForDate, fixedStarNames } from "../fixedstars";
 
 //const count = ref(0)
 
-const positionsKey = ref({});
-const positionsKey2 = ref({});
+const positionsKey: Ref<{
+  [key: string]: {
+    sign: string;
+    house: number;
+    degree: number;
+    minute: number;
+    retrograde: boolean;
+  };
+}> = ref({});
 
+const positionsKey2: Ref<{
+  [key: string]: {
+    sign: string;
+    house: number;
+    degree: number;
+    minute: number;
+    retrograde: boolean;
+  };
+}> = ref({});
 const signs_en: string[] = [
   "Aries",
   "Taurus",
@@ -50,8 +66,24 @@ function nthNumber(number: number): string {
 function computePositionsKey(
   planets: { [key: string]: number[] },
   cusps: number[]
-): { [key: string]: [string, number, number, number] } {
-  let result: { [key: string]: [string, number, number, number] } = {};
+): {
+  [key: string]: {
+    sign: string;
+    house: number;
+    degree: number;
+    minute: number;
+    retrograde: boolean;
+  };
+} {
+  let result: {
+    [key: string]: {
+      sign: string;
+      house: number;
+      degree: number;
+      minute: number;
+      retrograde: boolean;
+    };
+  } = {};
 
   // [cusp, house zero based] starting at the lowest degreee number cusp
   let house_cusps_offset = [];
@@ -67,13 +99,20 @@ function computePositionsKey(
     for (const cusp of house_cusps_offset) {
       if (ecliptic >= cusp[0]) {
         house = cusp[1] + 1;
-        break
+        break;
       }
     }
 
     let deg = Math.floor(ecliptic - 30 * sign);
-    let minutes = Math.round(((ecliptic - 30 * sign)- deg) * 60);
-    result[key] = [signs_en[sign], house, deg, minutes];
+    let minutes = Math.round((ecliptic - 30 * sign - deg) * 60);
+    let retrograde = value[1] < 0;
+    result[key] = {
+      sign: signs_en[sign],
+      house: house,
+      degree: deg,
+      minute: minutes,
+      retrograde: retrograde,
+    };
   }
   return result;
 }
@@ -221,7 +260,12 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
       continue;
     }
     // No idea what that -1 is needed for
-    drawData.planets[value] = [point.ChartPosition.Ecliptic.DecimalDegrees-1];
+    // Second val is i think supposed to be speed but only the sign actually gets used.
+
+    drawData.planets[value] = [
+      point.ChartPosition.Ecliptic.DecimalDegrees - 1,
+      point.isRetrograde ? -1 : 1,
+    ];
   }
 
   for (const [_key, value] of Object.entries(fixedStarData)) {
@@ -230,7 +274,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
       if (interpretSettings.value.zodiac == "sidereal") {
         lat = value.sidereal_abs_lat;
       }
-      drawData.planets[value.name] = [lat];
+      drawData.planets[value.name] = [lat, 1];
     }
   }
 
@@ -319,19 +363,17 @@ function rerender(recheckFixedStars: boolean = false) {
 
   let s = container?.firstElementChild;
   if (s) {
-    if(targetSettings.value.transit)
-  {
-    s.setAttribute(
-      "style",
-      "max-width: calc(99% - 2em); max-height:min(95vh, 95vw); margin: auto; margin-top: 1.8rem; overflow: visible; position: relative;"
-    );
-  }
-  else{
-    s.setAttribute(
-      "style",
-      "max-width: calc(99% ); max-height:min(95vh, 99vw); margin: auto; margin-top: 0.4rem; overflow: visible; position: relative;"
-    );
-  }
+    if (targetSettings.value.transit) {
+      s.setAttribute(
+        "style",
+        "max-width: calc(99% - 2em); max-height:min(95vh, 95vw); margin: auto; margin-top: 1.8rem; overflow: visible; position: relative;"
+      );
+    } else {
+      s.setAttribute(
+        "style",
+        "max-width: calc(99% ); max-height:min(95vh, 99vw); margin: auto; margin-top: 0.4rem; overflow: visible; position: relative;"
+      );
+    }
   }
 }
 
@@ -348,7 +390,6 @@ watch(interpretSettings.value, () => {
 onMounted(() => {
   rerender();
 });
-
 </script>
 
 <template>
@@ -368,12 +409,14 @@ onMounted(() => {
           <tr
             class="card w-8rem h-4-rem"
             v-for="(v, i) of positionsKey"
-            v-bind:key="v"
+            v-bind:key="i"
           >
-            <td>{{ i }}</td>
-            <td>{{ v[0] }}</td>
-            <td>{{ v[1] }}{{ nthNumber(v[1]) }}</td>
-            <td>{{ v[2] }}°{{ v[3] }}'</td>
+            <td>
+              {{ i }}<span title="Retrograde" v-if="v.retrograde">(r)</span>
+            </td>
+            <td>{{ v.sign }}</td>
+            <td>{{ v.house }}{{ nthNumber(v.house) }}</td>
+            <td>{{ v.degree }}°{{ v.minute }}'</td>
           </tr>
         </tbody>
       </table>
