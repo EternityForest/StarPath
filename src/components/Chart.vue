@@ -65,13 +65,14 @@ function computePositionsKey(
     let ecliptic = value[0];
     let sign = Math.floor(ecliptic / 30);
     for (const cusp of house_cusps_offset) {
-      if (ecliptic > cusp[0]) {
+      if (ecliptic >= cusp[0]) {
         house = cusp[1] + 1;
+        break
       }
     }
 
-    let deg = Math.round(ecliptic - 30 * sign);
-    let minutes = Math.round((ecliptic - 30 * sign - deg) * 60);
+    let deg = Math.floor(ecliptic - 30 * sign);
+    let minutes = Math.round(((ecliptic - 30 * sign)- deg) * 60);
     result[key] = [signs_en[sign], house, deg, minutes];
   }
   return result;
@@ -144,10 +145,10 @@ function autoAddFixedStarsForChart(
 
       if (Math.abs(value2_t[0] - fixed_star_pos) < value.orb) {
         if (!interpretSettings.value.fixed_stars.includes(value.name)) {
-            if(value.magnitude<2.5){
+          if (value.magnitude <= 2.2) {
             console.log("Auto added fixed star: " + value.name);
-          interpretSettings.value.fixed_stars.push(value.name);
-            }
+            interpretSettings.value.fixed_stars.push(value.name);
+          }
         }
         if (unseenFixed.includes(value.name)) {
           unseenFixed.splice(unseenFixed.indexOf(value.name), 1);
@@ -219,7 +220,8 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
     if (!point) {
       continue;
     }
-    drawData.planets[value] = [point.ChartPosition.Ecliptic.DecimalDegrees];
+    // No idea what that -1 is needed for
+    drawData.planets[value] = [point.ChartPosition.Ecliptic.DecimalDegrees-1];
   }
 
   for (const [_key, value] of Object.entries(fixedStarData)) {
@@ -294,11 +296,10 @@ function rerender(recheckFixedStars: boolean = false) {
     el.textContent = name;
     el.setAttributeNS(null, "fill", "#a3a38e");
 
-    x = (x*7 + 400)/8
-    y = (y*7 + 400)/8
+    x = (x * 7 + 400) / 8;
+    y = (y * 7 + 400) / 8;
     el.setAttributeNS(null, "x", x.toString());
     el.setAttributeNS(null, "y", y.toString());
-
 
     return el;
   }
@@ -318,10 +319,19 @@ function rerender(recheckFixedStars: boolean = false) {
 
   let s = container?.firstElementChild;
   if (s) {
+    if(targetSettings.value.transit)
+  {
     s.setAttribute(
       "style",
       "max-width: calc(99% - 2em); max-height:min(95vh, 95vw); margin: auto; margin-top: 1.8rem; overflow: visible; position: relative;"
     );
+  }
+  else{
+    s.setAttribute(
+      "style",
+      "max-width: calc(99% ); max-height:min(95vh, 99vw); margin: auto; margin-top: 0.4rem; overflow: visible; position: relative;"
+    );
+  }
   }
 }
 
@@ -338,26 +348,35 @@ watch(interpretSettings.value, () => {
 onMounted(() => {
   rerender();
 });
+
 </script>
 
 <template>
   <div class="grow flex-row">
     <div id="chartcontainer" class="grow"></div>
     <div class="flex-row gaps padding" id="positions">
-      <div
-        class="card w-8rem h-4-rem"
-        v-for="(v, i) of positionsKey"
-        v-bind:key="v"
-      >
-        <header class="padding">
-          <small>{{ i }}</small>
-        </header>
-        <div class="padding">
-          <small>
-            {{ v[1] }}{{ nthNumber(v[1]) }} {{ v[0] }} {{ v[2] }}°{{ v[3] }}′
-          </small>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Sign</th>
+            <th>House</th>
+            <th>Degree</th>
+          </tr>
+        </thead>
+        <tbody class="scroll">
+          <tr
+            class="card w-8rem h-4-rem"
+            v-for="(v, i) of positionsKey"
+            v-bind:key="v"
+          >
+            <td>{{ i }}</td>
+            <td>{{ v[0] }}</td>
+            <td>{{ v[1] }}{{ nthNumber(v[1]) }}</td>
+            <td>{{ v[2] }}°{{ v[3] }}'</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
