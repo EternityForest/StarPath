@@ -1,4 +1,6 @@
-const ASPECTS: {[key:string]: { degree: number; orbit: number; color: string }} = {
+const ASPECTS: {
+  [key: string]: { degree: number; orbit: number; color: string };
+} = {
   conjunction: { degree: 0, orbit: 10, color: "transparent" },
   square: { degree: 90, orbit: 8, color: "#FF4500" },
   trine: { degree: 120, orbit: 8, color: "#27AE60" },
@@ -6,6 +8,7 @@ const ASPECTS: {[key:string]: { degree: number; orbit: number; color: string }} 
   sextile: { degree: 60, orbit: 4, color: "#27AE60" },
 };
 
+//Planet1 guaranteed to be from first list
 function findAllAspects(
   chart1: { [key: string]: number[] },
   chart2: { [key: string]: number[] }
@@ -17,6 +20,8 @@ function findAllAspects(
     orb: number;
     color: string;
   }[] = [];
+
+  let done: { [key: string]: number } = {};
 
   Object.keys(chart1).forEach((planet1) => {
     Object.keys(chart2).forEach((planet2) => {
@@ -33,14 +38,19 @@ function findAllAspects(
             degreeDiff >= aspect.degree - orb &&
             degreeDiff <= aspect.degree + orb
           ) {
-            const orb=Math.abs(degreeDiff-aspect.degree);
-            aspects.push({
-              planet1,
-              planet2,
-              aspect: aspectName,
-              orb: orb,
-              color: aspect.color,
-            });
+            const orb = Math.abs(degreeDiff - aspect.degree);
+
+            if (!done[planet1 + planet2]) {
+              aspects.push({
+                planet1,
+                planet2,
+                aspect: aspectName,
+                orb: orb,
+                color: aspect.color,
+              });
+            }
+            done[planet1 + planet2] = 1;
+            done[planet2 + planet1] = 1;
           }
         });
       }
