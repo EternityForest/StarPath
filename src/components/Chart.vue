@@ -206,6 +206,15 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
     longitude: lon,
   });
 
+
+  // To be able to use ayanamsas, calculate tropical and
+  // add an offset.  This means we can't do whole sign directly
+  //so we round later
+  let houses = interpretSettings.value.houses;
+  if(houses=="whole-sign")
+  {
+    houses="equal-house"
+  }
   const horoscope = new Horoscope({
     origin: new Origin(origin),
     houseSystem: interpretSettings.value.houses,
@@ -217,6 +226,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
     language: "en",
   });
 
+ 
   const mapping = {
     sun: "Sun",
     moon: "Moon",
@@ -268,7 +278,15 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
   drawData.cusps = [];
   for (const [_key, value] of Object.entries(horoscope.Houses)) {
     let x: any = value;
-    drawData.cusps.push((x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees-ayanamsa)%360);
+    let cusp =x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees
+  
+    cusp -= ayanamsa;
+    cusp=cusp%360;
+    if(interpretSettings.value.houses=="whole-sign"){
+      cusp = 30*Math.floor(cusp/30);
+    }
+
+      drawData.cusps.push(cusp);
   }
   return drawData;
 }
