@@ -258,11 +258,11 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
     if (!point) {
       continue;
     }
-    // No idea what that -1 is needed for
-    // Second val is i think supposed to be speed but only the sign actually gets used.
 
+    
+    // Second val is i think supposed to be speed but only the sign actually gets used.
     drawData.planets[value] = [
-      point.ChartPosition.Ecliptic.DecimalDegrees - 1,
+      point.ChartPosition.Ecliptic.DecimalDegrees,
       point.isRetrograde ? -1 : 1,
     ];
   }
