@@ -3,6 +3,7 @@ import { onMounted, watch, ref, type Ref } from "vue";
 import { Chart } from "@astrodraw/astrochart";
 import { Origin, Horoscope } from "circular-natal-horoscope-js";
 import {calculateAyanamsa} from "../ayanamsa";
+import {findAllAspects} from "../aspects";
 
 import {
   targetSettings,
@@ -14,6 +15,17 @@ import { getForDate, fixedStarNames } from "../fixedstars";
 // defineProps<{ msg: string }>()
 
 //const count = ref(0)
+
+
+
+const aspectsKey: Ref<{
+    planet1: string;
+    planet2: string;
+    aspect: string;
+    orb: number;
+    color: string;
+  }[]> = ref([]);
+
 
 const positionsKey: Ref<{
   [key: string]: {
@@ -117,6 +129,7 @@ function computePositionsKey(
   }
   return result;
 }
+
 
 function autoAddFixedStarsForChart(
   drawData: any,
@@ -233,7 +246,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
     }
 
     let v = point.ChartPosition.Ecliptic.DecimalDegrees;
-    v -= ayanamsa;
+    v= (v-ayanamsa)%360;
     
 
     // Second val is i think supposed to be speed but only the sign actually gets used.
@@ -246,7 +259,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
 
   for (const [_key, value] of Object.entries(fixedStarData)) {
     if (interpretSettings.value.fixed_stars.includes(value.name)) {
-      let lat = value.abs_lat-ayanamsa;
+      let lat = (value.abs_lat-ayanamsa)%360;
       drawData.planets[value.name] = [lat, 1];
     }
   }
@@ -255,7 +268,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
   drawData.cusps = [];
   for (const [_key, value] of Object.entries(horoscope.Houses)) {
     let x: any = value;
-    drawData.cusps.push(x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees-ayanamsa);
+    drawData.cusps.push((x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees-ayanamsa)%360);
   }
   return drawData;
 }
@@ -297,6 +310,10 @@ function rerender(recheckFixedStars: boolean = false) {
     ? computePositionsKey(drawData2.planets, drawData2.cusps)
     : {};
 
+  aspectsKey.value = findAllAspects(drawData.planets, targetSettings.value.transit?drawData2.planets:drawData.planets);
+
+  
+
   function custom_symbol(
     name: string,
     x: number,
@@ -326,7 +343,15 @@ function rerender(recheckFixedStars: boolean = false) {
     container.innerHTML = "";
   }
   var chart = new Chart("chartcontainer", 800, 800, {
+
     CUSTOM_SYMBOL_FN: custom_symbol,
+    ASPECTS: {
+    conjunction: { degree: 0, orbit: 10, color: 'transparent' },
+    square: { degree: 90, orbit: 8, color: '#FF4500' },
+    trine: { degree: 120, orbit: 8, color: '#27AE60' },
+    opposition: { degree: 180, orbit: 10, color: '#27AE60' },
+    sextile: { degree: 60, orbit: 4, color: '#27AE60' }
+  },
   });
   const radix = chart.radix(drawData);
 
@@ -369,7 +394,9 @@ onMounted(() => {
 <template>
   <div class="grow flex-row">
     <div id="chartcontainer" class="grow"></div>
-    <div class="flex-row gaps padding" id="positions">
+
+    <div class="positions">
+      <h3>{{ targetSettings.name }}</h3>
       <table>
         <thead>
           <tr>
@@ -379,7 +406,7 @@ onMounted(() => {
             <th>Degree</th>
           </tr>
         </thead>
-        <tbody class="scroll">
+        <tbody>
           <tr
             class="card w-8rem h-4-rem"
             v-for="(v, i) of positionsKey"
@@ -395,6 +422,63 @@ onMounted(() => {
         </tbody>
       </table>
     </div>
+
+   
+    <div class="positions" v-if="targetSettings.transit">
+      <h3>{{ targetSettings.name2 }}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Sign</th>
+            <th>House</th>
+            <th>Degree</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            class="card w-8rem h-4-rem"
+            v-for="(v, i) of positionsKey2"
+            v-bind:key="i"
+          >
+            <td>
+              {{ i }}<span title="Retrograde" v-if="v.retrograde">(r)</span>
+            </td>
+            <td>{{ v.sign }}</td>
+            <td>{{ v.house }}{{ nthNumber(v.house) }}</td>
+            <td>{{ v.degree }}°{{ v.minute }}'</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="positions">
+      <table>
+        <thead v-if="targetSettings.transit">
+          <tr>
+            <th>Inner</th>
+            <th>Aspect</th>
+            <th>Outer</th>
+            <th>Orb</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            class="card w-8rem h-4-rem"
+            v-for="(v, i) of aspectsKey"
+            v-bind:key="i"
+          >
+            <td>{{ v.planet1 }}</td>
+            <td>{{ v.aspect }}</td>
+            <td>{{ v.planet2 }}</td>
+            <td>{{ Math.round(v.orb) }}°</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
   </div>
 </template>
 
@@ -404,10 +488,10 @@ onMounted(() => {
   min-width: 18em;
   flex-basis: fit-content;
 }
-#positions {
+.positions {
   min-width: 22rem;
   flex-grow: 0.3;
   min-height: 100vh;
-  overflow: scroll;
+  overflow: auto;
 }
 </style>
