@@ -143,7 +143,9 @@ async function doLocationSearch2() {
           >Chart Type
           <select v-model="interpretSettings.zodiac">
             <option value="tropical">Tropical/Western</option>
-            <option value="sidereal">Siderial</option>
+            <option value="sidereal">Siderial(Fagan-Bradley)</option>
+            <option value="sidereal-lahiri">Siderial(Lahiri)</option>
+
           </select>
         </label>
         <label>
@@ -151,6 +153,10 @@ async function doLocationSearch2() {
           <select v-model="interpretSettings.houses">
             <option value="placidus">Placidus</option>
             <option value="whole-sign">Whole Signs</option>
+            <option value="regiomontanus">Regiomontanus</option>
+            <option value="koch">Koch</option>
+            <option value="equal-house">Equal Houses</option>
+            <option value="campanus">Campanus</option>
           </select>
         </label>
 

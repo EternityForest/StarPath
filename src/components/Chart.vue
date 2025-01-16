@@ -2,6 +2,8 @@
 import { onMounted, watch, ref, type Ref } from "vue";
 import { Chart } from "@astrodraw/astrochart";
 import { Origin, Horoscope } from "circular-natal-horoscope-js";
+import {calculateAyanamsa} from "../ayanamsa";
+
 import {
   targetSettings,
   interpretSettings,
@@ -116,46 +118,6 @@ function computePositionsKey(
   return result;
 }
 
-// function tropicalToSiderealOffset(parsed: Date): number {
-
-//     const origin = new Origin({
-//     year: parsed.getFullYear(),
-//     month: parsed.getMonth(), // 0 = January, 11 = December!
-//     date: parsed.getDate(),
-//     hour: parsed.getHours(),
-//     minute: parsed.getMinutes(),
-//     latitude: 40.0,
-//     longitude: -70.0,
-//   });
-
-//   const horoscope = new Horoscope({
-//     origin: new Origin(origin),
-//     houseSystem: "placidus",
-//     zodiac: "sidereal",
-//     aspectPoints: ["bodies", "points", "angles"],
-//     aspectWithPoints: ["bodies", "points", "angles"],
-//     aspectTypes: ["major", "minor"],
-//     customOrbs: {},
-//     language: "en",
-//   });
-
-//   const horoscope2 = new Horoscope({
-//     origin: new Origin(origin),
-//     houseSystem: "placidus",
-//     zodiac: "tropical",
-//     aspectPoints: ["bodies", "points", "angles"],
-//     aspectWithPoints: ["bodies", "points", "angles"],
-//     aspectTypes: ["major", "minor"],
-//     customOrbs: {},
-//     language: "en",
-//   });
-
-//   const sun_sidereal = horoscope.CelestialBodies.sun.Ecliptic.DecimalDegrees
-//   const sun_tropical = horoscope2.CelestialBodies.sun.Ecliptic.DecimalDegrees
-
-//   return((sun_sidereal- sun_tropical) % 360)
-// }
-
 function autoAddFixedStarsForChart(
   drawData: any,
   fixedStarData: {
@@ -210,6 +172,17 @@ function autoAddFixedStarsForChart(
 function getDrawableData(datetime: string, lat: number, lon: number) {
   const parsed = new Date(datetime);
 
+  let ayanamsa = 0;
+
+  if(interpretSettings.value.zodiac == "sidereal") {
+    ayanamsa = calculateAyanamsa(parsed, "fagan-bradley");
+  }
+  else if(interpretSettings.value.zodiac == "sidereal-lahiri") {
+    ayanamsa = calculateAyanamsa(parsed, "lahiri");
+  }
+
+
+
   const origin = new Origin({
     year: parsed.getFullYear(),
     month: parsed.getMonth(), // 0 = January, 11 = December!
@@ -223,7 +196,7 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
   const horoscope = new Horoscope({
     origin: new Origin(origin),
     houseSystem: interpretSettings.value.houses,
-    zodiac: interpretSettings.value.zodiac,
+    zodiac: "tropical",
     aspectPoints: ["bodies", "points", "angles"],
     aspectWithPoints: ["bodies", "points", "angles"],
     aspectTypes: ["major", "minor"],
@@ -259,28 +232,30 @@ function getDrawableData(datetime: string, lat: number, lon: number) {
       continue;
     }
 
+    let v = point.ChartPosition.Ecliptic.DecimalDegrees;
+    v -= ayanamsa;
     
+
     // Second val is i think supposed to be speed but only the sign actually gets used.
     drawData.planets[value] = [
-      point.ChartPosition.Ecliptic.DecimalDegrees,
+      
+      v,
       point.isRetrograde ? -1 : 1,
     ];
   }
 
   for (const [_key, value] of Object.entries(fixedStarData)) {
     if (interpretSettings.value.fixed_stars.includes(value.name)) {
-      let lat = value.abs_lat;
-      if (interpretSettings.value.zodiac == "sidereal") {
-        lat = value.sidereal_abs_lat;
-      }
+      let lat = value.abs_lat-ayanamsa;
       drawData.planets[value.name] = [lat, 1];
     }
   }
 
+
   drawData.cusps = [];
   for (const [_key, value] of Object.entries(horoscope.Houses)) {
     let x: any = value;
-    drawData.cusps.push(x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees);
+    drawData.cusps.push(x.ChartPosition.StartPosition.Ecliptic.DecimalDegrees-ayanamsa);
   }
   return drawData;
 }
