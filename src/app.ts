@@ -28,6 +28,7 @@ const targetSettings = ref({
   lon2: 0,
 });
 
+
 const interpretSettings = ref({
   zodiac: "sidereal",
   houses: "placidus",
@@ -59,6 +60,17 @@ function settingsToUrl(targetSettings: any, interpretSettings: any) {
   url.searchParams.set("fixed_stars", interpretSettings.fixed_stars.join(","));
   window.history.replaceState(null, "Astria", url.href);
   sharingUrl.value = url.href;
+  setPageTitle();
+}
+
+
+function setPageTitle() {
+  let title: string = targetSettings.value["name"];
+
+  if (targetSettings.value["name2"]) {
+    title += " and " + targetSettings.value["name2"];
+  }
+  document.title = title;
 }
 
 function urlToSettings(url: URL) {
@@ -91,9 +103,12 @@ function urlToSettings(url: URL) {
       url.searchParams.get("fixed_stars") || ""
     ).split(",");
   }
+
+  setPageTitle();
 }
 
 urlToSettings(new URL(window.location.href));
+
 watch(targetSettings.value, () => {
   console.log("targetSettings changed");
   settingsToUrl(targetSettings.value, interpretSettings.value);

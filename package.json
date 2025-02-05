@@ -13,9 +13,11 @@
   "dependencies": {
     "@astrodraw/astrochart": "^3.0.2",
     "circular-natal-horoscope-js": "^1.1.0",
+    "suncalc": "^1.9.0",
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@types/suncalc": "^1.9.2",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",
     "@vueuse/head": "^2.0.0",
